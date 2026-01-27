@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pylocfield"
+version = "0.0.1"
+description = "A simple package to perform magnetic dipole sums."
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "GPLv3" }
+authors = [
+    { name = "Pietro Bonfa", email = "pietro.bonfa@posteo.net" }
+]
+
+dependencies = [
+    "numpy",
+    "ase",
+    "scipy",
+    "spglib"
+]
+
+[project.urls]
+Homepage = "https://github.com/bonfus/pylocfield"
+Repository = "https://github.com/bonfus/pylocfield"
+
