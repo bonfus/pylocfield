@@ -8,7 +8,8 @@ def compute_magnetic_moments(R: np.array, q: np.array, S: np.array):
     """
     Rq = R @ q
     moments = np.einsum('ij,k->kij', S, np.exp(-1.j * Rq))
-    moments += np.einsum('ij,k->kij', S, np.exp(1.j * Rq))
+    moments += np.einsum('ij,k->kij', np.conj(S), np.exp(1.j * Rq))
+
     return np.real_if_close(moments)
 
 
