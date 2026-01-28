@@ -144,24 +144,27 @@ def compute_dipolar_tensors(atoms, Rc: float = 12.0, Gc: float = 12.0):
     na = len(atoms)
     qs = atoms.info['q'].reshape((-1,3))
     nq = len(qs)
-    fcs = atoms.get_array("fc").reshape((nq, na,3))
-    mups = atoms.info['mu'].reshape((-1,3))
 
+    # reorder FCs as nq, na, 3 (i.e axes go 0 1 2 -> 1 0 2)
+    fcs = atoms.get_array("fc").reshape(na, nq, 3).transpose(1, 0, 2)
+
+    # muon positions should be (nmu, 3)
+    mups = atoms.info['mu'].reshape((-1,3))
 
     # Generate grids, gen_grid returns Cartesian positions
     R = gen_grid(atoms.cell, Rc)
     G = gen_grid(atoms.cell.reciprocal(), Gc, remove_origin=True)
     G *= 2*np.pi
 
-    D = np.zeros([len(mups), len(qs), na, 3,3], dtype=complex)
+    D = np.zeros([na, len(mups), len(qs), 3, 3], dtype=complex)
     for i, mup in enumerate(mups):
         for j, q in enumerate(qs):
-            D[i, j] = compute_dipolar_tensor(atoms, mup, q, fcs[j], R, G)
+            D[:, i, j, :, :] = compute_dipolar_tensor(atoms, mup, q, fcs[j], R, G)
 
     # reset previous value
     atoms.set_array("D", None)
     # dipolar tensors for each atom with order mu,q,3x3
-    atoms.set_array("D", np.swapaxes(D, 2, 0))
+    atoms.set_array("D", D)
 
 
 def compute_field(atoms, use_cc: bool = True):
@@ -196,13 +199,15 @@ def compute_field(atoms, use_cc: bool = True):
 
     # mag info
     qs = atoms.info['q'].reshape((-1,3))
-    fcs = atoms.get_array("fc").reshape((-1,na,3))
+    nq = len(qs)
+    fcs = atoms.get_array("fc").reshape(na, nq, 3).transpose(1, 0, 2)
+
     mups = atoms.info['mu'].reshape((-1,3))
 
+    reciprocal_cell = atoms.cell.reciprocal()
 
     # previously calculated
     D = atoms.get_array('D')
-    D = np.swapaxes(D, 0, 2)
 
     # initialize output
     B = np.zeros([len(mups), len(qs), 3], dtype=complex)
@@ -216,11 +221,13 @@ def compute_field(atoms, use_cc: bool = True):
         for j, q in enumerate(qs):
 
             # to cartesian
-            q = atoms.cell.reciprocal().cartesian_positions(q) * 2*np.pi
+            q = reciprocal_cell.cartesian_positions(q) * 2 * np.pi
 
             # (μ_0/4pi) μ_B = 0.927 401 01 T·Å³
             #b = (0.92740101 / vc) * np.einsum('i,nij,ij->j', np.exp(-1.j * (r0 @ q)), D[i,j], fcs[j])
-            b = (0.92740101 / vc) * np.einsum('n,nij,nj->i', np.exp(-1.j * (r0 @ q)), D[i,j], fcs[j])
+            b = (0.92740101 / vc) * np.einsum(
+                "n,nij,nj->i", np.exp(-1.0j * (r0 @ q)), D[:, i, j], fcs[j]
+            )
             # see Eq. 5.63
             B[i, j] += 2*b.real if use_cc else b
 
