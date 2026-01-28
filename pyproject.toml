@@ -8,7 +8,8 @@ version = "0.0.1"
 description = "A simple package to perform magnetic dipole sums."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "GPLv3" }
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
     { name = "Pietro Bonfa", email = "pietro.bonfa@posteo.net" }
 ]
@@ -19,6 +20,9 @@ dependencies = [
     "scipy",
     "spglib"
 ]
+
+[project.optional-dependencies]
+examples = ["matplotlib"]
 
 [project.urls]
 Homepage = "https://github.com/bonfus/pylocfield"
