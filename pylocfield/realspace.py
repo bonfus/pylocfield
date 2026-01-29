@@ -96,7 +96,7 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
 
             # --- Lorentz field calculation ---
             # magnetic_constant * 1 bohr_magneton = 11.654064 T⋅Å^3
-            B_L[j, i] = (1./3.) * 11.654064 *  np.sum(m)/((4/3) * np.pi * Rc**3)
+            B_L[j, i] = (1./3.) * 11.654064 *  np.sum(m, axis=0) / ((4/3) * np.pi * Rc**3)
 
     return B + B_L
 
