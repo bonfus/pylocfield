@@ -77,13 +77,13 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
 
             r_hat = r / r_norm[:, None]
 
-            mu_dot_r = np.einsum('ij,ij->i', m, r_hat)
+            m_dot_r = np.einsum('ij,ij->i', m, r_hat)
 
             inv_r3 = 1.0 / r_norm**3
             del r_norm
 
             B[j, i] = 0.92740101 * (
-                np.einsum('i,ij->j', 3.0 * mu_dot_r * inv_r3, r_hat)
+                np.einsum('i,ij->j', 3.0 * m_dot_r * inv_r3, r_hat)
                 - np.einsum('i,ij->j', inv_r3, m)
             )
 
