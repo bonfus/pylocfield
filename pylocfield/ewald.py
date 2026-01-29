@@ -63,7 +63,7 @@ def compute_dipolar_tensor(
     vc = atoms.get_volume()
 
     # get distance from basis atoms
-    muds, _ = get_distances(mup, atoms.positions)
+    muds = -get_distances(mup, atoms.positions)[0]
     muds.shape = (-1,3)
 
 
@@ -215,7 +215,7 @@ def compute_field(atoms, use_cc: bool = True):
     for i, mup in enumerate(mups):
         mup = atoms.cell.cartesian_positions(mup)
         # distance from magnetic atoms
-        r0 = get_distances(mup, atoms.positions)[0]
+        r0 = -get_distances(mup, atoms.positions)[0]
         r0.shape = (-1,3)
 
         for j, q in enumerate(qs):
