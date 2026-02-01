@@ -7,7 +7,7 @@ from ase.atoms import Atoms
 def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array):
     """
     This function assumes that one q is specified for
-    each pair of (+q, -q) vectors.
+    each pair of (+q, -q) propagation vectors.
     """
     from pymatgen.core import Structure
     from ase.build.supercells import make_supercell
@@ -34,6 +34,7 @@ def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array):
     for i, q in enumerate(qs):
         mom = compute_magnetic_moments(R, q, fcs[:, i, :]).reshape(-1, 3)
 
+        sc.set_initial_magnetic_moments(None)
         sc.set_initial_magnetic_moments(mom)
 
         st = Structure.from_ase_atoms(sc)
