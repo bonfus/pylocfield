@@ -1,6 +1,6 @@
 import numpy as np
 
-def gen_grid(cell, cutoff: float, remove_origin=False):
+def gen_grid(cell, cutoff: float, remove_origin: bool = False, prune: bool = True):
     """
     Generate a Cartesian grid of lattice vectors within a spherical cutoff.
 
@@ -20,6 +20,12 @@ def gen_grid(cell, cutoff: float, remove_origin=False):
     remove_origin : bool, optional
         If ``True``, the lattice vector ``(0, 0, 0)`` is excluded from the
         output. Default is ``False``.
+
+    prune: bool, optional
+        If ``True``, only lattice vectors within cutoff are returned.
+        If ``False`` all points in the supercell are returned.
+        This is usefull when one wants to guarantee that the cutoff is
+        satisfied all possibe points inside the unit cell.
 
     Returns
     -------
@@ -55,15 +61,18 @@ def gen_grid(cell, cutoff: float, remove_origin=False):
 
     # remove (0,0,0)
     if remove_origin:
-        mask_G0 = np.any(N != 0, axis=-1).reshape(-1)
+        mask_origin = np.any(N != 0, axis=-1).reshape(-1)
     else:
-        mask_G0 = True
+        mask_origin = True
 
     # convert to Cartesian coordinates
     C = cell.cartesian_positions(N.reshape(-1, 3))  # shape (Ntot, 3)
 
     # norm cutoff
-    mask_Cmax = np.linalg.norm(C, axis=1) <= cutoff
+    if prune:
+        mask_prune = np.linalg.norm(C, axis=1) <= cutoff
+    else:
+        mask_prune = True
 
     # apply both masks
-    return C[mask_G0 & mask_Cmax]
+    return np.where(C, mask_origin & mask_prune)

@@ -48,7 +48,7 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
     mups = cell.cartesian_positions(mups)
 
     # This is already in cartesian coordinates
-    R = gen_grid(cell, Rc)
+    R = gen_grid(cell, Rc, prune=False)
 
     # what is faster?
     # sc_positions = positions[:, None, :] + R[None, :, :]
