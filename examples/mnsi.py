@@ -37,14 +37,17 @@ atoms = crystal("MnSi",
                 spacegroup=198,
                 cellpar=[a,a,a,90,90,90])
 
-# Add the known muon site. Other equivalent positions are automatically added below.
+# Add the known muon site. 
+# Other equivalent positions are automatically added below.
 atoms.info['mu'] = np.array(
     [
-        [0.45,0.45,0.45],
+        [0.532, 0.532, 0.532],
     ]
 )
 
 # Find and add equivalent muon sites.
+# Notice that the position 
+# initially inserted may not be the first one.
 add_equivalent_muon_sites(atoms)
 
 ## Step 2: Magnetic order(s)
@@ -119,6 +122,7 @@ phi[0] = np.dot(k, atoms.positions[0]) # k cdot Mn_1 pos, in Cartesian space
 phi[1] = np.dot(k, atoms.positions[1])
 phi[2] = np.dot(k, atoms.positions[2])
 phi[3] = np.dot(k, atoms.positions[3])
+phi /= 2*np.pi
 
 # Set FCs using real, imaginary and phase components.
 atoms.set_array("ri", ri)
@@ -146,7 +150,7 @@ B_e = ewald_sum(atoms)
 # Now repeat the same computation with the direct sum approach.
 # A large cutoff radius is required (the wavelength is about 18 nm i.e.).a
 # Below we use 200 Ang = 20 nm which is barely enough.
-B_r = direct_sum(atoms, Rc=200)
+B_r = direct_sum(atoms, r_c=200)
 
 # Print the results to compare the two approaches.
 n_mu = len(atoms.info["mu"])
@@ -167,20 +171,40 @@ phase_points = 300
 phases = np.linspace(0, 1, phase_points)
 # Here we store results for Ewald sums.
 # Order is number of phase points, number of muon sites, number of q vectors
-fields = np.zeros((phase_points, 4, 2))
+fields_esum = np.zeros((phase_points, 4, 2))
 # same for direct sums, but since real space sum 
-# is time consuming, we do it once every 10 phases.
+# is time consuming, we do it once every 10 phases and use a much smaller (too small!)
+# cutoff radius.
 fields_dsum = np.zeros((phase_points//10, 4, 2))
+
+
+# From the manuscript, A=-0.9276(20) mol/emu
+A = -0.9276 * 0.071884019
+
+# (2 magnetic_constant/3)⋅1bohr_magneton   = ((2 ⋅ magnetic_constant) ∕ 3) ⋅ (1 ⋅ bohr_magneton)
+# ≈ 7.769376E-27((g⋅m^3) ∕ (A⋅s^2))
+# ≈ 7.769376 T⋅Å^3
+
+A *= 7.769376 * atoms.cell.volume / 4
 
 for i, p in enumerate(phases):
     phi = np.zeros((8, 2, 1)) + p
     atoms.set_array("phi", phi)
     atoms.set_array("fc", real_imag_phase_to_fc(atoms))
 
-    fields[i] = np.linalg.norm(ewald_sum(atoms), axis=-1)
+    # Compute contact field
+    M = direct_sum(atoms, r_c=2., only_magnetization=True)
+    B_c = M * A
+
+    # Compute dipolar field
+    B_e = ewald_sum(atoms)
+
+    fields_esum[i] = np.linalg.norm(B_e + B_c, axis=-1)
 
     if (i%10) == 0:
-        fields_dsum[i//10] = np.linalg.norm(direct_sum(atoms, Rc=120), axis=-1)
+        # same as above with real space sum
+        B_r = direct_sum(atoms, r_c=100)
+        fields_dsum[i//10] = np.linalg.norm(B_r + B_c, axis=-1)
 
 
 # Finally we make a beautiful picture!
@@ -188,7 +212,7 @@ markers = ["o", "s", "^", "D"]
 for i in range(4):
     plt.scatter(
         phases,
-        fields[:, i, 0],
+        fields_esum[:, i, 0],
         c="orange",
         s=12,
         marker=markers[i],
@@ -197,7 +221,7 @@ for i in range(4):
 for i in range(4):
     plt.scatter(
         phases,
-        fields[:, i, 1],
+        fields_esum[:, i, 1],
         c="green",
         s=4,
         marker=markers[i],
