@@ -13,7 +13,7 @@ def compute_magnetic_moments(R: np.array, q: np.array, S: np.array):
     return np.real_if_close(moments)
 
 
-def compute_field(atoms: Atoms, Rc: float = 100.0):
+def compute_field(atoms: Atoms, r_c: float = 100.0, only_magnetization: bool = False):
     """
     Real-space dipolar field.
 
@@ -21,13 +21,17 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
     ----------
     atoms : ase.Atoms
         Unit cell, with muon positions, propagation vectors and fourier components already stored in "info['mu']", "info['q']" and "get_array('fc')".
-    Rc : float or None
+    r_c : float or None
         Real-space cutoff in Angstrom.
+    only_magnetization : bool
+        If true, computes the magnetization considering only atoms that are within r_c from the muon.
+        This is useful when trying to model contact field contribution.
 
     Returns
     -------
     B : (3,) ndarray
-        Dipolar field, including the Lorentz field.
+        When `only_magnetization` is False, returns the dipolar field, including the Lorentz field. Units are Tesla.
+        When `only_magnetization` is Ture, the magnetization computed with the given cutoff radius is returned. Units are bohr_magneton/Angstrom^3.
     """
 
     cell = atoms.cell
@@ -48,7 +52,7 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
     mups = cell.cartesian_positions(mups)
 
     # This is already in cartesian coordinates
-    R = gen_grid(cell, Rc, prune=False)
+    R = gen_grid(cell, r_c, prune=False)
 
     # what is faster?
     # sc_positions = positions[:, None, :] + R[None, :, :]
@@ -62,18 +66,26 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
         moments = compute_magnetic_moments(R, q, S[i])
         for j, mup in enumerate(mups):
 
-            # --- Dipolar field calculation ---
+
             r = sc_positions - mup
-            r2 = np.sum(r * r, axis=2)
+            r_norm = np.linalg.norm(r, axis=2)
 
             # remove positions ooutside the sphere
-            mask = r2 < Rc**2
-            r = r[mask]
-            r2 = r2[mask]
+            mask = r_norm < r_c
+
             m = moments[mask]
 
-            r_norm = np.sqrt(r2)
-            del r2
+            # --- Lorentz field calculation ---
+            B_L[j, i] = np.sum(m, axis=0)
+
+            if only_magnetization:
+                # This is used to count how many cells we have included
+                B_L[j, i] *= na / len(m)
+                continue
+
+            # --- Dipolar field calculation ---
+            r = r[mask]
+            r_norm = r_norm[mask]
 
             r_hat = r / r_norm[:, None]
 
@@ -94,9 +106,11 @@ def compute_field(atoms: Atoms, Rc: float = 100.0):
             #    axis=0
             #)
 
-            # --- Lorentz field calculation ---
-            # magnetic_constant * 1 bohr_magneton = 11.654064 T⋅Å^3
-            B_L[j, i] = (1./3.) * 11.654064 *  np.sum(m, axis=0) / ((4/3) * np.pi * Rc**3)
+    if not only_magnetization:
+        # magnetic_constant * 1 bohr_magneton = 11.654064 T⋅Å^3
+        B_L *= (1./3.) * 11.654064  / ((4/3) * np.pi * r_c**3)
+    else:
+        B_L /= cell.volume
 
     return B + B_L
 

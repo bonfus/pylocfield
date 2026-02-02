@@ -75,4 +75,4 @@ def gen_grid(cell, cutoff: float, remove_origin: bool = False, prune: bool = Tru
         mask_prune = True
 
     # apply both masks
-    return np.where(C, mask_origin & mask_prune)
+    return C[mask_origin & mask_prune].reshape(-1,3)

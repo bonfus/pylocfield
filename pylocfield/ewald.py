@@ -106,7 +106,7 @@ def compute_dipolar_tensor(
     return D
 
 
-def compute_dipolar_tensors(atoms, Rc: float = 12.0, Gc: float = 12.0):
+def compute_dipolar_tensors(atoms, r_c: float = 12.0, Gc: float = 12.0):
     """
     Compute dipolar tensors for multiple q vectors and muon positions.
 
@@ -125,7 +125,7 @@ def compute_dipolar_tensors(atoms, Rc: float = 12.0, Gc: float = 12.0):
     atoms : ase.Atoms
         ASE Atoms object containing atomic positions, q vectors,
         muon positions, and Fourier components.
-    Rc : float, optional
+    r_c : float, optional
         Real-space cutoff radius (in Angstrom) used to truncate
         the Ewald real-space sum.
         Default is 12.0.
@@ -152,7 +152,7 @@ def compute_dipolar_tensors(atoms, Rc: float = 12.0, Gc: float = 12.0):
     mups = atoms.info['mu'].reshape((-1,3))
 
     # Generate grids, gen_grid returns Cartesian positions
-    R = gen_grid(atoms.cell, Rc)
+    R = gen_grid(atoms.cell, r_c)
     G = gen_grid(atoms.cell.reciprocal(), Gc, remove_origin=True)
     G *= 2*np.pi
 
