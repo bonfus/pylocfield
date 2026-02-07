@@ -13,7 +13,7 @@ def compute_dipolar_tensor(
     fcs: np.ndarray,
     R: np.ndarray,
     G: np.ndarray,
-    rho: float = 1.0,
+    rho: float = 1.8,
     eps: float = 1e-8,
 ):
     """
@@ -94,6 +94,7 @@ def compute_dipolar_tensor(
         # pretty stupid to compute all elements, but that's so fast!
         for alpha in range(3):
             for beta in range(3):
+                # assume is q=0 if q2 <= eps**2
                 if q2 > eps**2:
                     D[idx, alpha, beta] += -4*np.pi * ((q[alpha]*q[beta])/q2 ) * np.exp(-q2/(4*rho**2))
 
@@ -106,7 +107,7 @@ def compute_dipolar_tensor(
     return D
 
 
-def compute_dipolar_tensors(atoms, r_c: float = 12.0, Gc: float = 12.0):
+def compute_dipolar_tensors(atoms, r_c: float = 12.0, g_c: float = 12.0, **kwargs):
     """
     Compute dipolar tensors for multiple q vectors and muon positions.
 
@@ -129,10 +130,12 @@ def compute_dipolar_tensors(atoms, r_c: float = 12.0, Gc: float = 12.0):
         Real-space cutoff radius (in Angstrom) used to truncate
         the Ewald real-space sum.
         Default is 12.0.
-    Gc : float, optional
+    g_c : float, optional
         Reciprocal-space cutoff radius (in Angstrom^-1) used to
         truncate the Ewald reciprocal-space sum.
         Default is 12.0.
+    **kwargs
+        Other keyword arguments are passed to `compute_dipolar_tensor`
 
     Returns
     -------
@@ -153,13 +156,13 @@ def compute_dipolar_tensors(atoms, r_c: float = 12.0, Gc: float = 12.0):
 
     # Generate grids, gen_grid returns Cartesian positions
     R = gen_grid(atoms.cell, r_c)
-    G = gen_grid(atoms.cell.reciprocal(), Gc, remove_origin=True)
+    G = gen_grid(atoms.cell.reciprocal(), g_c, remove_origin=True)
     G *= 2*np.pi
 
     D = np.zeros([na, len(mups), len(qs), 3, 3], dtype=complex)
     for i, mup in enumerate(mups):
         for j, q in enumerate(qs):
-            D[:, i, j, :, :] = compute_dipolar_tensor(atoms, mup, q, fcs[j], R, G)
+            D[:, i, j, :, :] = compute_dipolar_tensor(atoms, mup, q, fcs[j], R, G, **kwargs)
 
     # reset previous value
     atoms.set_array("D", None)
