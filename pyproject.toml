@@ -22,7 +22,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-examples = ["matplotlib"]
+examples = ["matplotlib",
+            "pymatgen"
+]
 
 [project.urls]
 Homepage = "https://github.com/bonfus/pylocfield"
