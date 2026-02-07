@@ -7,17 +7,18 @@ from pylocfield.utils import add_equivalent_muon_sites, real_imag_phase_to_fc
 
 import matplotlib.pyplot as plt
 
-
-"""
-This example shows how to reproduce the dipolar field distribution at muon
-sites in MnSi. The details are described in A. Amato et al. PRB 93 144419 (2016).
-
-Here's an extract from manuscript:
-    This is remarkable as
-    the position of Bmin,II,III,IV, with respect to BI, depends on the
-    helicity of the incommensurate helix and is located above BI
-    only for left-handed helicity
-"""
+#| # MnSi example
+#|
+#| This example shows how to reproduce the dipolar field distribution at muon
+#| sites in MnSi. The details are described in A. Amato et al. PRB 93 144419 (2016).
+#|
+#| Here's an extract from manuscript:
+#|     This is remarkable as
+#|     the position of Bmin,II,III,IV, with respect to BI, depends on the
+#|     helicity of the incommensurate helix and is located above BI
+#|     only for left-handed helicity
+#|
+#| Below we reproduce this interesting result.
 
 np.set_printoptions(suppress=True, precision=5)
 
@@ -25,19 +26,25 @@ def uv(vec):
     # a simple function to obtain unit vectors
     return vec/np.linalg.norm(vec)
 
-## Step 1: Lattice and muons
+#| ## Step 1: Lattice and muons
+#|
+#| Here we define the lattice structure and add the known
+#| muon position.
+#| The function `add_equivalent_muon_sites` is used to
+#| identify the symmetry of the lattice and to add the
+#| equivalent muon sites in the system.
 
 # Define the lattice structure
 a = 4.558 # Å
-atoms = crystal("MnSi", 
+atoms = crystal("MnSi",
                 basis = [
                             [0.138,0.138,0.138],
-                            [0.845,0.845,0.845] 
+                            [0.845,0.845,0.845]
                         ],
                 spacegroup=198,
                 cellpar=[a,a,a,90,90,90])
 
-# Add the known muon site. 
+# Add the known muon site.
 # Other equivalent positions are automatically added below.
 atoms.info['mu'] = np.array(
     [
@@ -46,27 +53,30 @@ atoms.info['mu'] = np.array(
 )
 
 # Find and add equivalent muon sites.
-# Notice that the position 
-# initially inserted may not be the first one.
+# Notice that the position
+# inserted above may not be the first one.
 add_equivalent_muon_sites(atoms)
 
-## Step 2: Magnetic order(s)
+#| ## Step 2: Magnetic order(s)
+#|
+#| Here we define the magnetic order in terms of propagation vector
+#| and Fourier components.
 
 # Norm of the propagation vector in MnSi (in reciprocal space)
 norm_k = 0.036 # Å −1
 
-# Define the propagation vector in reciprocal space along 
+# Define the propagation vector in reciprocal space along
 # the [111] direction.
 k = norm_k * uv(np.ones(3))
 
-# Same as above in reduced coordinates. 
+# Same as above in reduced coordinates.
 # Notice that ASE gives reciprocal space without the 2π factor.
 k_rlu = atoms.cell.reciprocal().scaled_positions(k) / (2 * np.pi)
 
 # A magnetic structure, we define two propagation vectors in
 # reciprocal lattice units (i.e. these are fractional coordinates)
-# These are the same for MnSi since we just want to change the
-# helicity.
+# These are the same for MnSi since we just want to define two magnetic
+# orders that differ by the handness of the helix.
 atoms.info['q'] = np.array(
     [
         k_rlu,  # first k
@@ -74,12 +84,12 @@ atoms.info['q'] = np.array(
     ]
 )
 
-# Now the Fourier components, we first define to vectors 
+# Now the Fourier components, we first define to vectors
 # in the plane perpendicular to k.
 
 k_u = uv(k) # unit vector along k
 a = uv([1,-1,0]) # a unit vector orthogonal to k
-b = np.cross(k_u,a) # a third vector orthogonal to both previous ones.
+b = np.cross(k_u,a) # a third vector, orthogonal to both previous ones.
 
 # Here we define the real and imaginary parts of the Fourier components (FC).
 # We assume the local moment on Mn to be 0.385 mu_B and we generate the
@@ -129,17 +139,17 @@ atoms.set_array("ri", ri)
 atoms.set_array("phi", phi)
 atoms.set_array("fc", real_imag_phase_to_fc(atoms))
 
-## Step 3: Computation
+#| ## Step 3: Computation
+#| #
+#| # Here we compute the local fields at the muon site with both
+#| # real space and Ewals approaches.
+#| #
+#| # In the Ewald method we compute the dipolar tensors first.
+#| # Notice that the dipolar tensors do not depend on Fourier components so
+#| # they can be reused with different values for this parameter.
+#| # However, to speedup the computation, the function will skip
+#| # atoms that have zero FC (Si in this case).
 #
-# Here we compute the local fields at the muon site with both
-# real space and Ewals approaches.
-#
-# In the Ewald method we compute the dipolar tensors first.
-# Notice that the dipolar tensors do not depend on Fourier components so
-# they can be reused with different values for this parameter.
-# However, to speedup the computation, the function will skip
-# atoms that have zero FC (Si in this case).
-# 
 # This step is required to later compute the local fields.
 compute_dipolar_tensors(atoms)
 
@@ -162,23 +172,25 @@ for i in range(n_mu):
         )
     print('\n')
 
-
-# Here we change the phase of the FC. This is an incommensurate order
-# and the muon will probe all possible values from 0 to 1 (the values are
-# in units of 2π).
+#| ## Step 5: Incommensurate orders
+#|
+#| Here we change the phase of the FC. This is an incommensurate order
+#| and the muon will probe all possible values from 0 to 1 (the values are
+#| in units of 2π).
 
 phase_points = 300
 phases = np.linspace(0, 1, phase_points)
 # Here we store results for Ewald sums.
 # Order is number of phase points, number of muon sites, number of q vectors
 fields_esum = np.zeros((phase_points, 4, 2))
-# same for direct sums, but since real space sum 
+# same for direct sums, but since real space sum
 # is time consuming, we do it once every 10 phases and use a much smaller (too small!)
 # cutoff radius.
 fields_dsum = np.zeros((phase_points//10, 4, 2))
 
-
+# Here we estimate the contact term.
 # From the manuscript, A=-0.9276(20) mol/emu
+# the factor 0.071884019 is documented here: https://muesr.readthedocs.io/en/latest/ContactTerm.html
 A = -0.9276 * 0.071884019
 
 # (2 magnetic_constant/3)⋅1bohr_magneton   = ((2 ⋅ magnetic_constant) ∕ 3) ⋅ (1 ⋅ bohr_magneton)
@@ -207,7 +219,9 @@ for i, p in enumerate(phases):
         fields_dsum[i//10] = np.linalg.norm(B_r + B_c, axis=-1)
 
 
-# Finally we make a beautiful picture!
+#| ## Step 6: Plot
+#|
+#| Finally we make a beautiful picture!
 markers = ["o", "s", "^", "D"]
 for i in range(4):
     plt.scatter(
