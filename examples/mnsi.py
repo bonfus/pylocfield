@@ -89,7 +89,7 @@ atoms.info['q'] = np.array(
 
 k_u = uv(k) # unit vector along k
 a = uv([1,-1,0]) # a unit vector orthogonal to k
-b = np.cross(k_u,a) # a third vector, orthogonal to both previous ones.
+b = np.cross(k_u, a) # a third vector, orthogonal to both previous ones.
 
 # Here we define the real and imaginary parts of the Fourier components (FC).
 # We assume the local moment on Mn to be 0.385 mu_B and we generate the
@@ -200,8 +200,7 @@ A = -0.9276 * 0.071884019
 A *= 7.769376 * atoms.cell.volume / 4
 
 for i, p in enumerate(phases):
-    phi = np.zeros((8, 2, 1)) + p
-    atoms.set_array("phi", phi)
+    atoms.set_array("phi", phi + p)
     atoms.set_array("fc", real_imag_phase_to_fc(atoms))
 
     # Compute contact field
@@ -257,7 +256,7 @@ for i in range(4):
         fields_dsum[:, i, 1],
         c="green",
         marker=markers[i],
-        label=f"$k_1 ^{{(LF)}}, \\mu_{i + 1}$",
+        label=f"$k_1 ^{{(LH)}}, \\mu_{i + 1}$",
         alpha=0.5
     )
 
