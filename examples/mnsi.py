@@ -10,9 +10,11 @@ import matplotlib.pyplot as plt
 #| # MnSi example
 #|
 #| This example shows how to reproduce the dipolar field distribution at muon
-#| sites in MnSi. The details are described in A. Amato et al. PRB 93 144419 (2016).
+#| sites in MnSi. The details are described in
+#| [A. Amato et al. Phys. Rev. B 89, 184425](https://doi.org/10.1103/PhysRevB.89.184425) and in
+#| [P. Dalmas de Réotier et al, Phys. Rev. B 93, 144419](https://doi.org/10.1103/PhysRevB.93.144419)
 #|
-#| Here's an extract from manuscript:
+#| Here's an extract from the first manuscript:
 #|     This is remarkable as
 #|     the position of Bmin,II,III,IV, with respect to BI, depends on the
 #|     helicity of the incommensurate helix and is located above BI
@@ -54,13 +56,19 @@ atoms.info['mu'] = np.array(
 
 # Find and add equivalent muon sites.
 # Notice that the position
-# inserted above may not be the first one.
+# inserted above may not be the first one in the new list.
 add_equivalent_muon_sites(atoms)
 
 #| ## Step 2: Magnetic order(s)
 #|
 #| Here we define the magnetic order in terms of propagation vector
 #| and Fourier components.
+#| This is quite tricky. We first find the propagation vector in
+#| both Cartesian and scaled units. The latter is the value that should be
+#| specified as input to pylocfield. We will use instead the former to
+#| set the phase on Mn atoms.
+#| Fourier components are instead specified using the real and impaginary parts
+#| and the relative phase of Mn atoms in the unit cell.
 
 # Norm of the propagation vector in MnSi (in reciprocal space)
 norm_k = 0.036 # Å −1
@@ -140,15 +148,17 @@ atoms.set_array("phi", phi)
 atoms.set_array("fc", real_imag_phase_to_fc(atoms))
 
 #| ## Step 3: Computation
-#| #
-#| # Here we compute the local fields at the muon site with both
-#| # real space and Ewals approaches.
-#| #
-#| # In the Ewald method we compute the dipolar tensors first.
-#| # Notice that the dipolar tensors do not depend on Fourier components so
-#| # they can be reused with different values for this parameter.
-#| # However, to speedup the computation, the function will skip
-#| # atoms that have zero FC (Si in this case).
+#|
+#| Here we compute the local fields at the muon site with both
+#| real space and Ewals approaches.
+#|
+#| In the Ewald method we compute the dipolar tensors first.
+#| Notice that the dipolar tensors do not depend on Fourier components so
+#| they can be reused with different values for this parameter.
+#| However, to speedup the computation, the function will skip
+#| atoms that have zero FC (Si in this case).
+#|
+#| The cell below is useful to check convergence.
 #
 # This step is required to later compute the local fields.
 compute_dipolar_tensors(atoms)
@@ -175,8 +185,11 @@ for i in range(n_mu):
 #| ## Step 5: Incommensurate orders
 #|
 #| Here we change the phase of the FC. This is an incommensurate order
-#| and the muon will probe all possible values from 0 to 1 (the values are
-#| in units of 2π).
+#| and the muon will probe all possible phases from 0 to 1 (the values are
+#| in units of 2π) by landing into different unit cells.
+#|
+#| A contact contribution is also added. For the details refer to the manuscripts
+#| cited above.
 
 phase_points = 300
 phases = np.linspace(0, 1, phase_points)
