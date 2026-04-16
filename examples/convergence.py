@@ -56,7 +56,7 @@ atoms.set_array("fc", real_imag_phase_to_fc(atoms))
 
 # | ## Step 4: check the magnetic structure
 # |
-# | A few exaples showing how to visualize structures
+# | A few examples showing how to visualize structures
 # | are given in visualization.py
 # | You can either use ASE (click on visualize magmoms)
 # | or generate a mcif file that can be shown by VESTA,
@@ -112,7 +112,7 @@ print("---")
 # | ## Step 6: convergence
 # |
 # | Here we check convergence against cell sizes. As you can see the Ewald approach
-# | is alredy well converged with a real and reciprocal cutoffs of about 4 Ang and 4 Ang^-1,
+# | is already well converged with a real and reciprocal cutoffs of about 4 Ang and 4 Ang^-1,
 # | while the direct sum converges only with a cutoff of about 100 Ang.
 
 fig, ax = plt.subplots()

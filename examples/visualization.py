@@ -10,6 +10,7 @@ def generate_supercells_with_moments(atoms: Atoms, supercell_matrix: np.array):
     na = len(atoms)
     fcs = atoms.get_array("fc")
     qs = atoms.info["q"].reshape(-1, 3)
+    qs = atoms.cell.reciprocal().cartesian_positions(qs) * 2 * np.pi
 
     cell = atoms.cell
 

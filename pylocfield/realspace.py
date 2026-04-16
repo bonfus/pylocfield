@@ -5,6 +5,15 @@ from .grid import gen_grid
 def compute_magnetic_moments(R: np.array, q: np.array, S: np.array):
     """
     This assumes that only q (or -q) has been specified.
+
+    Parameters
+    ----------
+    R : numpy.array
+        Lattice cell position in Cartesian coordinates.
+    q : numpy.array
+        propagation vector in Cartesian coordinates.
+    S : numpy.array
+        Fourier components, in Cartesian coordinates.
     """
     Rq = R @ q
     moments = np.einsum('ij,k->kij', S, np.exp(-1.j * Rq))
