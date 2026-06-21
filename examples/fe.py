@@ -4,7 +4,7 @@ from ase.build import bulk
 from pylocfield.ewald import compute_dipolar_tensors, compute_field as ewald_sum
 from pylocfield.realspace import compute_field as direct_sum
 from pylocfield.utils import add_equivalent_muon_sites
-from visualization import show_ase
+from pylocfield.visualization import show_ase
 
 np.set_printoptions(suppress=True, precision=5)
 

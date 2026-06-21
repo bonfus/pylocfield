@@ -1,11 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pymatgen.core import Structure
-from visualization import show_ase
 
 from pylocfield.ewald import compute_dipolar_tensors, compute_field as ewald_sum
 from pylocfield.realspace import compute_field as direct_sum
 from pylocfield.utils import add_equivalent_muon_sites, real_imag_phase_to_fc
+from pylocfield.visualization import show_ase
 
 np.set_printoptions(suppress=True, precision=5)
 
