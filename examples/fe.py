@@ -55,16 +55,17 @@ add_equivalent_muon_sites(atoms)
 # | * Fourier components. These are specified in _Cartesian coordinates_.
 # |
 # | In this case everything is fairly simple: the propagation vector is (0, 0, 0)
-# | and the Fourier constant is just 0.5 * m_Fe along the z direction.
+# | and the Fourier component is just 0.5 * m_Fe along the z direction.
 
-# A magnetic structure, we define two propagation vectors in
-# reciprocal lattice units (i.e. these are fractional coordinates)
+# A magnetic structure, we define a propagation vector in
+# reciprocal lattice units (i.e. these are fractional coordinates) ...
 k = np.array(
     [
         [0.0, 0.0, 0.0],  # Propagation vector 1
     ]
 )
 
+# ... and Fourier components (notice the 1/2 factor, see Theory)
 fc = 0.5 * np.array(
     [  # first (and only) atom
         [  # first k vector
@@ -74,6 +75,7 @@ fc = 0.5 * np.array(
     dtype=complex,
 )
 
+# we finally add this information to the atoms object
 atoms.set_array("fc", fc)
 atoms.info["q"] = k
 
