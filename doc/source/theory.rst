@@ -1,7 +1,7 @@
 Theory
 ======
 
-A short description of the key concepts used in this code are provided below.
+A short description of the key concepts used in this code is provided below.
 
 Magnetic orders
 ---------------
