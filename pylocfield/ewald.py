@@ -64,7 +64,7 @@ def compute_dipolar_tensor(
 
     # get distance from basis atoms
     muds = -get_distances(mup, atoms.positions)[0]
-    muds.shape = (-1,3)
+    muds = muds.reshape((-1,3), copy=False) # muds.shape = (-1,3) is deprecated
 
 
     # initialize result array
@@ -219,7 +219,7 @@ def compute_field(atoms, use_cc: bool = True):
         mup = atoms.cell.cartesian_positions(mup)
         # distance from magnetic atoms
         r0 = -get_distances(mup, atoms.positions)[0]
-        r0.shape = (-1,3)
+        r0 = r0.reshape((-1,3), copy=False)  # r0.shape = (-1,3) is deprecated
 
         for j, q in enumerate(qs):
 
