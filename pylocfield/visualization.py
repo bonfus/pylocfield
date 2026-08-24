@@ -28,8 +28,11 @@ def generate_supercells_with_moments(atoms: Atoms, supercell_matrix: np.array):
         )
 
     magnetic_structures = []
+    tot = np.zeros([len(sc), 3])
+
     for i, q in enumerate(qs):
         mom = compute_magnetic_moments(R, q, fcs[:, i, :]).reshape(-1, 3)
+        tot += mom
 
         scm = sc.copy()
         scm.set_initial_magnetic_moments(None)
@@ -37,7 +40,11 @@ def generate_supercells_with_moments(atoms: Atoms, supercell_matrix: np.array):
 
         magnetic_structures.append(scm)
 
-    return magnetic_structures
+    sc_sum = sc.copy()
+    sc_sum.set_initial_magnetic_moments(None)
+    sc_sum.set_initial_magnetic_moments(tot)
+
+    return magnetic_structures, sc_sum
 
 
 def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array):
@@ -47,9 +54,15 @@ def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array):
     """
     from pymatgen.core import Structure
 
-    for i, sc in enumerate(generate_supercells_with_moments(atoms, supercell_matrix)):
+    single_q, all_q = generate_supercells_with_moments(atoms, supercell_matrix)
+
+    for i, sc in enumerate(single_q):
         st = Structure.from_ase_atoms(sc)
         st.to(f"{label}-{st.chemical_system}-q{i + 1}.mcif")
+
+
+    st = Structure.from_ase_atoms(all_q)
+    st.to(f"{label}-{st.chemical_system}-all.mcif")
 
 
 def show_ase(atoms: Atoms, supercell_matrix: np.array, gui: bool = False, **kwargs):
