@@ -114,4 +114,6 @@ An example is given below.
     # Compute local fields using dipolar tensors
     B_e = ewald_sum(atoms)
 
-The results are reported in Tesla per muon site.
+The results are reported in Tesla per muon site. `compute_dipolar_tensors` takes two optional input parameters
+that should be converged. They are `r_c` and `g_c` and should be set to a few times the longest real space
+and reciprocal space lattice parameter respectively.
