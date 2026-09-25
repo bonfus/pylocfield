@@ -1,11 +1,13 @@
 import numpy as np
 
-from pylocfield.realspace import compute_magnetic_moments
 from ase.atoms import Atoms
+from ase.atom import Atom
+from ase.build.supercells import make_supercell
+
+from pylocfield.realspace import compute_magnetic_moments
 
 
 def generate_supercells_with_moments(atoms: Atoms, supercell_matrix: np.array):
-    from ase.build.supercells import make_supercell
 
     na = len(atoms)
     fcs = atoms.get_array("fc")
@@ -16,14 +18,21 @@ def generate_supercells_with_moments(atoms: Atoms, supercell_matrix: np.array):
 
     sc = make_supercell(atoms, supercell_matrix, order="cell-major", wrap=False)
 
-    R = cell.cartesian_positions(np.floor(cell.scaled_positions(sc.positions[0::na])))
+    #Computer the lattice vectors joining the various replica
+    R = cell.cartesian_positions(
+            np.rint(
+                cell.scaled_positions(sc.positions[0::na]-sc.positions[0])
+            )
+        )
 
     # Check that the same happens if we use the second atom as reference
     if na > 1:
         assert np.allclose(
-            cell.cartesian_positions(
-                np.floor(cell.scaled_positions(sc.positions[1::na]))
-            ),
+                cell.cartesian_positions(
+                    np.rint(
+                        cell.scaled_positions(sc.positions[1::na]-sc.positions[1])
+                    )
+                ),
             R,
         )
 
@@ -47,7 +56,27 @@ def generate_supercells_with_moments(atoms: Atoms, supercell_matrix: np.array):
     return magnetic_structures, sc_sum
 
 
-def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array):
+def muons_as_atoms(atoms: Atoms, specie: str = "H", supercell_matrix: np.array = None, local_fields: np.array = None):
+
+    # make a copy of the original object to remove atoms
+    mu_atoms = atoms.copy()
+
+    #delete all atoms
+    del mu_atoms[range(len(mu_atoms))]
+
+    for mu_pos in mu_atoms.info['mu']:
+        mu_atoms.append(Atom(specie))
+        mu_atoms.positions[-1] = mu_atoms.cell.cartesian_positions(mu_pos)
+
+    if local_fields is not None:
+        mu_atoms.set_array('fields', local_fields)
+
+    if supercell_matrix is not None:
+        mu_atoms = make_supercell(mu_atoms, supercell_matrix, order="cell-major", wrap=False)
+
+    return mu_atoms
+
+def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array, add_muons = False):
     """
     This function assumes that one q is specified for
     each pair of (+q, -q) propagation vectors.
@@ -56,13 +85,16 @@ def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array):
 
     single_q, all_q = generate_supercells_with_moments(atoms, supercell_matrix)
 
+    if add_muons:
+        all_q += muons_as_atoms(atoms, supercell_matrix=supercell_matrix)
+
     for i, sc in enumerate(single_q):
         st = Structure.from_ase_atoms(sc)
-        st.to(f"{label}-{st.chemical_system}-q{i + 1}.mcif")
+        st.to(f"{label}-{st.chemical_system}-q{i + 1}.mcif", write_magmoms=True)
 
 
     st = Structure.from_ase_atoms(all_q)
-    st.to(f"{label}-{st.chemical_system}-all.mcif")
+    st.to(f"{label}-{st.chemical_system}-all.mcif", write_magmoms=True)
 
 
 def show_ase(atoms: Atoms, supercell_matrix: np.array, gui: bool = False, **kwargs):
