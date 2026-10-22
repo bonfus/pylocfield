@@ -1,6 +1,10 @@
 import numpy as np
 import spglib
 from ase import Atoms
+from ase.cell import Cell
+from ase.spacegroup.symmetrize import atoms_to_spglib_cell
+from ase.spacegroup import get_spacegroup
+from ase.geometry import get_duplicate_atoms
 
 
 def real_imag_phase_to_fc(atoms: Atoms):
@@ -22,22 +26,24 @@ def real_imag_phase_to_fc(atoms: Atoms):
     return fc
 
 
-def add_equivalent_muon_sites(atoms: Atoms):
+def add_equivalent_muon_sites(atoms: Atoms, **kwargs):
     """
     Add equivalent muon sites according to crystal symmetries.
     Muon positions are taken from atoms.info['mu'], which is
     updated with the new positions found.
+    Inherits keyword options from symprec.
     """
     mup = atoms.info["mu"]
     mup.shape = (-1, 3)
 
-    positions = get_symmetry_equivalent_positions(atoms, mup)
+    positions = get_symmetry_equivalent_positions(atoms, mup, **kwargs)
     atoms.info["mu"] = positions
 
 def get_symmetry_equivalent_positions(
     atoms: Atoms,
     frac_position: np.array,
     magnetic_symmetry: bool = False,
+    parent_symmetry: bool = False,
     symprec: float = 1e-5,
 ):
     """
@@ -53,6 +59,9 @@ def get_symmetry_equivalent_positions(
     magnetic_symmetry : bool
         If True, use spglib magnetic symmetry (requires atoms.get_initial_magnetic_moments() to return magnetic moments)
         If False, use crystallographic symmetry only
+    parent_symmetry : bool
+        If True, use spglib to find the conventional structure and use its symmetry
+        If False, use symmetry of provided cell.
     symprec : float
         Symmetry tolerance for spglib
 
@@ -81,6 +90,42 @@ def get_symmetry_equivalent_positions(
     else:
         cell = (lattice, positions, numbers)
 
+    if parent_symmetry:
+        dataset = spglib.get_symmetry_dataset(cell)
+        P = dataset.transformation_matrix
+        iP = np.linalg.inv(P)
+        p = dataset.origin_shift
+        ip = iP @ p
+
+        conv_sym = spglib.get_symmetry((dataset.std_lattice, dataset.std_positions, dataset.std_types), symprec=symprec)
+
+        rotations = conv_sym["rotations"]
+        translations = conv_sym["translations"]
+
+        equiv_positions = []
+        # compute equivalent positions in conventional cell
+        for position in frac_position:
+            # bring position to conventional cell
+            c_position = P @ position + p
+            # apply symmetry
+            for R, t in zip(rotations, translations):
+                # transform in std cell
+                new_pos = R @ c_position + t
+                #back to initial cell
+                new_pos = iP @ new_pos - ip
+                # add it
+                equiv_positions.append(new_pos % 1.0)
+
+        equiv_positions = np.unique(
+            np.round(
+                np.asarray(equiv_positions), decimals=np.log10(1 / symprec).astype(int)
+            ) % 1,
+            axis=0,
+        )
+
+        frac_position = equiv_positions
+
+
     sym = spglib.get_symmetry(cell, symprec=symprec)
 
     rotations = sym["rotations"]
@@ -96,8 +141,27 @@ def get_symmetry_equivalent_positions(
     equiv_positions = np.unique(
         np.round(
             np.asarray(equiv_positions), decimals=np.log10(1 / symprec).astype(int)
-        ),
+        ) % 1,
         axis=0,
     )
 
     return equiv_positions
+
+
+
+def fullprof_to_cartesian(atoms: Atoms, ri: np.array):
+    cell = atoms.cell
+    unitary_cell = Cell(cell.array / cell.lengths())
+
+    return unitary_cell.cartesian_positions(ri)
+
+def cartesian_to_fullprof(atoms: Atoms, ri: np.array):
+    cell = atoms.cell
+    unitary_cell = Cell(cell.array / cell.lengths())
+
+    return unitary_cell.scaled_positions(ri)
+
+scaled_moments_to_cartesian = lambda atoms, ri: atoms.cell.cartesian_positions(ri)
+
+cartesian_to_scaled_moments = lambda atoms, ri: atoms.cell.scaled_positions(ri)
+
