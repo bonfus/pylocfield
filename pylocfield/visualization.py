@@ -76,22 +76,28 @@ def muons_as_atoms(atoms: Atoms, specie: str = "H", supercell_matrix: np.array =
 
     return mu_atoms
 
-def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array, add_muons = False):
+def save_mcif(label: str, atoms: Atoms, supercell_matrix: np.array, add_muons:bool = False, local_fields: np.array = None):
     """
     This function assumes that one q is specified for
     each pair of (+q, -q) propagation vectors.
+    add_muons include muons in the structure.
     """
     from pymatgen.core import Structure
 
     single_q, all_q = generate_supercells_with_moments(atoms, supercell_matrix)
 
     if add_muons:
-        all_q += muons_as_atoms(atoms, supercell_matrix=supercell_matrix)
+        mus = muons_as_atoms(atoms, supercell_matrix=supercell_matrix, local_fields=local_fields)
+        # add sum of all q now
+        mus.set_initial_magnetic_moments(np.sum(mus.get_array('fields'), axis=1))
+        all_q += mus
 
     for i, sc in enumerate(single_q):
+        if add_muons:
+            mus.set_initial_magnetic_moments(mus.get_array('fields')[:, i, :])
+            sc += mus
         st = Structure.from_ase_atoms(sc)
         st.to(f"{label}-{st.chemical_system}-q{i + 1}.mcif", write_magmoms=True)
-
 
     st = Structure.from_ase_atoms(all_q)
     st.to(f"{label}-{st.chemical_system}-all.mcif", write_magmoms=True)

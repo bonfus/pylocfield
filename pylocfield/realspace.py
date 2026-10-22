@@ -75,7 +75,6 @@ def compute_field(atoms: Atoms, r_c: float = 100.0, only_magnetization: bool = F
         moments = compute_magnetic_moments(R, q, S[i])
         for j, mup in enumerate(mups):
 
-
             r = sc_positions - mup
             r_norm = np.linalg.norm(r, axis=2)
 
